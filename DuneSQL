@@ -1,0 +1,25 @@
+WITH weekly_inputs AS (
+    SELECT address
+    FROM bitcoin.inputs
+    WHERE block_date >= current_date - interval '7' day
+    GROUP BY address
+),
+address_balances AS (
+    SELECT address, SUM(value) as total_balance
+    FROM (
+        SELECT address, value
+        FROM bitcoin.outputs
+        UNION ALL
+        SELECT address, -value
+        FROM bitcoin.inputs
+    ) x
+    WHERE address IS NOT NULL
+    GROUP BY address
+    ORDER BY total_balance DESC
+    LIMIT 100
+)
+
+SELECT ab.address
+FROM address_balances ab
+LEFT JOIN weekly_inputs wi ON ab.address = wi.address
+WHERE wi.address IS NOT NULL;
